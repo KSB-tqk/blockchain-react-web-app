@@ -1,29 +1,61 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.7;
+pragma solidity ^0.8.9;
 
-contract marketSentiment {
+// Import this file to use console.log
+import "hardhat/console.sol";
+
+contract MarketSentiment {
     address public owner;
-    string[] public ticketsArray;
+    string[] public tickersArray;
 
     constructor() {
         owner = msg.sender;
     }
 
     struct ticker {
-        bool exists;
+        bool exist;
         uint256 up;
         uint256 down;
         mapping(address => bool) Voters;
     }
 
-    event tickerupdated(uint256 up, uint256 down, address voter, string ticket);
+    event tickerupdated(uint256 up, uint256 down, address voter, string ticker);
 
     mapping(string => ticker) private Tickers;
 
     function addTicker(string memory _ticker) public {
         require(msg.sender == owner, "Only the owner can create tickers");
         ticker storage newTicker = Tickers[_ticker];
-        newTicker.exists = true;
-        ticketsArray.push(_ticker);
+        newTicker.exist = true;
+        tickersArray.push(_ticker);
+    }
+
+    function vote(string memory _ticker, bool _vote) public {
+        require(Tickers[_ticker].exist, "Can't vote on this coin");
+        require(
+            !Tickers[_ticker].Voters[msg.sender],
+            "You have already vote for this coin"
+        );
+
+        ticker storage theTicker = Tickers[_ticker];
+        theTicker.Voters[msg.sender] = true;
+
+        if (_vote) {
+            theTicker.up++;
+        } else {
+            theTicker.down++;
+        }
+
+        emit tickerupdated(theTicker.up, theTicker.down, msg.sender, _ticker);
+    }
+
+    function getVotes(string memory _ticker)
+        public
+        view
+        returns (uint256 up, uint256 down)
+    {
+        require(Tickers[_ticker].exist, "No such Ticker Defined");
+        ticker storage theTicker = Tickers[_ticker];
+        return (theTicker.up, theTicker.down);
     }
 }
